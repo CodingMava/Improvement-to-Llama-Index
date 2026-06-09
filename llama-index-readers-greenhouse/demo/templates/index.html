@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LlamaIndex Greenhouse Enterprise Portal</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col">
+
+    <header class="border-b border-slate-800 bg-slate-900/50 backdrop-blur px-6 py-4 flex justify-between items-center">
+        <div class="flex items-center space-x-3">
+            <div class="bg-indigo-600 p-2 rounded-lg text-white">
+                <i class="fa-solid fa-network-wired text-lg"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                    LlamaIndex <span class="text-xs bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded-full border border-indigo-500/30 font-mono">Greenhouse-v0.1.0</span>
+                </h1>
+                <p class="text-xs text-slate-400">Enterprise Candidate Intelligence Hub</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-4 text-sm">
+            <div class="flex items-center space-x-2 bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-full border border-emerald-500/20">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span class="font-mono text-xs">LLM Connection: Gemini 2.5-Flash</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 p-6 overflow-hidden">
+        
+        <section class="lg:col-span-4 flex flex-col space-y-4">
+            <div class="glass p-5 rounded-xl shadow-xl flex flex-col flex-1">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-sm font-semibold tracking-wider uppercase text-indigo-400 flex items-center gap-2">
+                        <i class="fa-solid fa-database"></i> Live Ingestion Stream
+                    </h2>
+                    <span class="text-xs bg-slate-800 px-2 py-1 rounded text-slate-400 font-mono">Harvest API</span>
+                </div>
+                
+                <div id="candidate-list" class="space-y-3 overflow-y-auto flex-1 max-h-[calc(100vh-240px)] pr-1">
+                    <div class="text-center py-8 text-slate-500">
+                        <i class="fa-solid fa-circle-notch animate-spin mb-2 text-xl block"></i>
+                        Loading ATS records...
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="lg:col-span-8 flex flex-col space-y-4">
+            <div class="glass p-6 rounded-xl shadow-xl flex flex-col flex-1">
+                
+                <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-6">
+                    <div>
+                        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-robot text-indigo-400"></i> RAG AI Sourcing Agent
+                        </h2>
+                        <p class="text-xs text-slate-400">Contextual talent pooling matching system powered by LlamaIndex embeddings.</p>
+                    </div>
+                </div>
+
+                <div class="flex-1 bg-slate-900/60 rounded-xl border border-slate-800/80 p-5 overflow-y-auto mb-4 min-h-[350px]" id="chat-viewport">
+                    <div class="h-full flex flex-col items-center justify-center text-slate-500 space-y-3" id="empty-state">
+                        <div class="p-4 bg-slate-800/50 rounded-full border border-slate-700/50">
+                            <i class="fa-solid fa-wand-magic-sparkles text-2xl text-indigo-400"></i>
+                        </div>
+                        <p class="text-sm text-center max-w-sm">
+                            Ask complex cross-candidate architectural sourcing queries. Try: <br>
+                            <span class="text-indigo-400 italic font-mono text-xs">"Which candidates passed technical screens and who has machine learning expertise?"</span>
+                        </p>
+                    </div>
+                    <div id="ai-response-content" class="hidden text-slate-200 leading-relaxed space-y-2 text-sm whitespace-pre-wrap"></div>
+                </div>
+
+                <form id="query-form" class="relative flex items-center">
+                    <input 
+                        type="text" 
+                        id="user-query" 
+                        placeholder="Query your candidate pipeline context..." 
+                        class="w-full bg-slate-900 border border-slate-700 focus:border-indigo-500 rounded-xl py-4 pl-5 pr-16 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all placeholder-slate-500"
+                        required
+                    >
+                    <button 
+                        type="submit" 
+                        id="submit-btn"
+                        class="absolute right-3 bg-indigo-600 hover:bg-indigo-500 text-white p-2.5 rounded-lg transition-all flex items-center justify-center cursor-pointer"
+                    >
+                        <i class="fa-solid fa-paper-plane" id="btn-icon"></i>
+                    </button>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchCandidates();
+            
+            const form = document.getElementById('query-form');
+            form.addEventListener('submit', handleQuerySubmission);
+        });
+
+        // Pulls mock candidate records to display in layout side pane
+        async function fetchCandidates() {
+            const listContainer = document.getElementById('candidate-list');
+            try {
+                const response = await fetch('/api/candidates');
+                const data = await response.json();
+                
+                listContainer.innerHTML = '';
+                data.forEach(c => {
+                    const card = document.createElement('div');
+                    card.className = 'p-3.5 bg-slate-900/40 border border-slate-800 rounded-lg hover:border-slate-700 transition-all';
+                    
+                    // Format candidate tag styles based on pipeline state
+                    const tagsHTML = c.tags.map(t => {
+                        let colorClass = 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20';
+                        if (t.name.includes('pass') || t.name.includes('expert')) colorClass = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+                        if (t.name.includes('reject')) colorClass = 'bg-rose-500/10 text-rose-400 border-rose-500/20';
+                        return `<span class="text-[10px] font-mono px-1.5 py-0.5 border rounded ${colorClass}">${t.name}</span>`;
+                    }).join(' ');
+
+                    card.innerHTML = `
+                        <div class="flex items-start justify-between mb-1.5">
+                            <h3 class="text-sm font-bold text-white">${c.first_name} ${c.last_name}</h3>
+                            <span class="text-[10px] font-mono text-slate-500">ID: #${c.id}</span>
+                        </div>
+                        <p class="text-xs text-slate-300 font-medium">${c.title}</p>
+                        <p class="text-[11px] text-slate-500 mb-2"><i class="fa-regular fa-building text-[10px]"></i> ${c.company}</p>
+                        <div class="flex flex-wrap gap-1">${tagsHTML}</div>
+                    `;
+                    listContainer.appendChild(card);
+                });
+            } catch (err) {
+                listContainer.innerHTML = `<div class="text-xs text-rose-400 p-4">Error loading stream pipeline metrics.</div>`;
+            }
+        }
+
+        // Submits active context payload targeting vectors via LlamaIndex pipeline
+        async function handleQuerySubmission(e) {
+            e.preventDefault();
+            const queryInput = document.getElementById('user-query');
+            const submitBtn = document.getElementById('submit-btn');
+            const btnIcon = document.getElementById('btn-icon');
+            const emptyState = document.getElementById('empty-state');
+            const responseContent = document.getElementById('ai-response-content');
+
+            const query = queryInput.value.trim();
+            if (!query) return;
+
+            // Trigger application state transitions for processing
+            queryInput.disabled = true;
+            submitBtn.disabled = true;
+            btnIcon.className = 'fa-solid fa-circle-notch animate-spin';
+            
+            emptyState.classList.add('hidden');
+            responseContent.classList.remove('hidden');
+            responseContent.innerHTML = `<span class="text-slate-500 italic"><i class="fa-solid fa-arrows-spin animate-spin text-indigo-400"></i> Scanning vector index partitions via Gemini LLM...</span>`;
+
+            try {
+                const response = await fetch(`/api/analyze_candidates?query=${encodeURIComponent(query)}`);
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    // Injecting clean responses back into viewport UI
+                    responseContent.innerHTML = `<div class="p-1 bg-slate-900 border border-slate-800 rounded-lg p-4 text-slate-200 border-l-4 border-l-indigo-500"><p class="font-semibold text-xs text-indigo-400 uppercase tracking-wider mb-2"><i class="fa-solid fa-microchip"></i> Agent Analysis</p>${data.response}</div>`;
+                } else {
+                    responseContent.innerHTML = `<div class="text-rose-400"><i class="fa-solid fa-triangle-exclamation"></i> Application Pipeline Error: ${data.message}</div>`;
+                }
+            } catch (err) {
+                responseContent.innerHTML = `<div class="text-rose-400"><i class="fa-solid fa-triangle-exclamation"></i> Network Connection Lost.</div>`;
+            } finally {
+                queryInput.disabled = false;
+                submitBtn.disabled = false;
+                btnIcon.className = 'fa-solid fa-paper-plane';
+                queryInput.value = '';
+            }
+        }
+    </script>
+</body>
+</html>

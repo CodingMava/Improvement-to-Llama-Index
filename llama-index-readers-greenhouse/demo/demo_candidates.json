@@ -1,0 +1,29 @@
+[
+  {
+    "id": 101,
+    "first_name": "Alice",
+    "last_name": "Smith",
+    "company": "TechCorp",
+    "title": "Senior Python Engineer",
+    "tags": [{"name": "passed_technical"}, {"name": "strong_communicator"}],
+    "applications": [{"id": 5001}]
+  },
+  {
+    "id": 102,
+    "first_name": "Bob",
+    "last_name": "Jones",
+    "company": "Startup Inc",
+    "title": "Data Scientist",
+    "tags": [{"name": "needs_review"}, {"name": "ml_expert"}],
+    "applications": [{"id": 5002}]
+  },
+  {
+    "id": 103,
+    "first_name": "Charlie",
+    "last_name": "Davis",
+    "company": "FinTech LLC",
+    "title": "Backend Developer",
+    "tags": [{"name": "rejected"}, {"name": "lacks_system_design"}],
+    "applications": [{"id": 5003}]
+  }
+]
